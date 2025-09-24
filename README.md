@@ -571,7 +571,7 @@ class ResConfigSettings(models.TransientModel):
     simpleapi_api_key = fields.Char(
         string='SimpleAPI Key',
         config_parameter='boleta_honorarios.simpleapi_api_key',
-        default='4648-N330-6392-2590-9354',
+        default='XXXX-XXXX-XXXX-XXXX-XXXX',
         help='API Key proporcionada por SimpleAPI'
     )
     
@@ -943,7 +943,7 @@ Tuve que hacer un checkout porque antes me había arrojado error, no estaba sobr
 
 ---
 
-#### Error
+#### #1 Error
 
 Falló el buildeo, por lo que se revisaran los logs
 
@@ -1015,7 +1015,7 @@ Después de hacer este `push`, Odoo.sh creará un nuevo build. Esta vez, la inst
 
 ---
 
-#### Error
+#### 2# Error
 
 El problema es una violación de restricción en la base de datos. La línea clave del log de pruebas es:
 
@@ -1155,3 +1155,754 @@ POST /api/bhe/terceros/emitir
 ![captura_1758119055](./captura_1758119055.png)
 
 https://www.youtube.com/watch?v=VIHJIqgAyPM&t=43s
+
+
+
+---
+
+### Retomando el proyecto
+
+Ya que el proyecto estuvo inactivo unos días, ahora que lo retomamos aparece como "DROPPED",  Osoo.sh para ahorrar recursos, pone a "dormir" builds en desarrollo después de un periodo de inactividad.
+
+#### Solución
+
+Ir a `Builds` en el navbar superior y hacer clic en `Rebuild`.
+
+![image-20250922103145669](./image-20250922103145669.png)
+
+![image-20250922103329887](./image-20250922103329887.png)
+
+---
+
+## 2.2 - Objetivo
+
+Añadiremos un botón en el formulario de la boleta que, al presionarlo, descargue el PDF oficial desde el SII y lo adjunte al registro en Odoo. 
+
+Usaremos el endpoint que identificamos como el correcto para esto: 
+
+**`GET /api/bhe/pdf/emitidas/{folio}/{año}`**.
+
+---
+
+### Cómo Probar el Endpoint de PDF en Postman
+
+Agregamos la colección abiendo con postman web o app desde la pagina de la documentación de simpleAPI, vamos a la carpeta inicial o principal de la colección y hacemos clic en "Authorization"
+
+![image-20250924023331176](./image-20250924023331176.png)
+
+En Api Key dentro del campo Value, vemos que hay una variable que toma desde algún lado la Api y ese lugar se encuentra en la columna de la derecha, en los datos de prueba o enviroment, para ello debemos seleccionar primeramente el enviroment:
+
+![image-20250924022656898](./image-20250924022656898.png)
+
+**Buscamos la Petición:** En la colección de Simple API en Postman, buscamos la petición que se llame "Obtener PDF Emitida".
+
+![image-20250924020401417](./image-20250924020401417.png)
+
+**Configura la Petición:**
+
+- **Método:** Aseguramos de que el método HTTP sea **GET**.
+
+  ![image-20250924020442586](./image-20250924020442586.png)
+
+- **URL:** Modifica la URL para incluir el `folio` y `año` de una boleta que ya hayamos emitido con éxito  (por ejemplo, el folio `6` ). La URL debería quedar así:
+
+- ![image-20250924020545004](./image-20250924020545004.png)
+
+  ```
+  https://servicios.simpleapi.cl/api/bhe/pdf/emitidas/6/2025
+  ```
+
+- **Auth:** Aquí nos aseguramos que el mismo parámetro que encontramos al inicio, se encuentre. La petición debería heredar tu API Key de la configuración de la colección.
+
+![image-20250924023438048](./image-20250924023438048.png)
+
+- **Body:** Ve a la pestaña **`Body`**, seleccionamos **`raw`** y **`JSON`**. Colocamos el `payload` con tus credenciales que probaremos, ya que este endpoint en particular las requiere:
+
+  ```json
+  {
+     "RutUsuario": "RUT-DEL-CONTRIBUYENTE(DEBE SER REAL)",
+     "PasswordSII": "CONTRASEÑA DEL SII(TAMBIÉN DEBE SER REAL)"
+  }
+  ```
+
+**Enviamos la Petición:** Presionando**"Send"**.
+
+![captura_1758692243](./captura_1758692243.png)
+
+Ya vemos que el Endpoint está funcionando (`200 OK`)con las credenciales del SII y la API Key de SimpleAPI. Debemos lograr añadir esto al módulo que desarrollaremos.
+
+---
+
+## 2.3 - Añadir el Botón a la Interfaz (XML)
+
+Vamos a agregar el botón para que el usuario pueda iniciar la acción.
+
+1. En el Editor de Odoo.sh, abrimos el archivo: 
+
+   
+
+   **`views/boleta_honorarios_views.xml`**.
+
+   
+
+2. Buscamos la sección `<header>` al principio de la vista de formulario.
+
+   
+
+3. Escribimos la siguiente línea de código después del botón de "Emitir Boleta":
+
+   ```xml
+   <button name="action_get_sii_pdf" string="Descargar PDF desde SII" type="object" class="btn-secondary" attrs="{'invisible': [('state', '!=', 'emitted')]}"/>
+   ```
+
+   El `<header>` debiera verse así:
+
+   ```xml
+   <header>
+       <button name="action_emitir_boleta" string="Emitir Boleta" type="object" class="btn-primary"/>
+       <button name="action_get_sii_pdf" string="Descargar PDF desde SII" type="object" class="btn-secondary" attrs="{'invisible': [('state', 'not in', ['emitted', 'downloaded'])]}"/>
+       <field name="state" widget="statusbar" .../>
+   </header>
+   ```
+
+---
+
+## 2.4 - Implementar la Lógica de Descarga (Python)
+
+Aunque añadir la función directamente en `boleta_honorarios.py` funciona, la mejor práctica es crear un nuevo archivo (ej: `models/boleta_honorarios_pdf.py`) y heredar el modelo para añadir la nueva funcionalidad por **modularidad**.
+
+1. En el Editor de Odoo.sh, dentro de la carpeta `models`, creamos el nuevo archivo:
+
+   
+
+   `simple_api_custom/models/boleta_honorarios_pdf.py`
+
+   
+
+2. Nos aseguramos de tener la línea `import base64` al principio del archivo, junto a los otros `import`.
+
+   
+
+3. Este código hereda el modelo existente `boleta.honorarios` y le añade únicamente nuestra nueva función.
+
+   ```python
+   # -*- coding: utf-8 -*-
+   import base64
+   import requests
+   import logging
+   from odoo import models, api, _
+   from odoo.exceptions import UserError
+   
+   _logger = logging.getLogger(__name__)
+   
+   class BoletaHonorariosPdf(models.Model):
+       _inherit = 'boleta.honorarios'
+   
+       def action_get_sii_pdf(self):
+           self.ensure_one()
+   
+           # --- Validaciones Previas ---
+           if self.state not in ('emitted', 'downloaded'):
+               raise UserError(_("Solo se puede descargar el PDF de boletas ya emitidas."))
+           if not self.numero_boleta:
+               raise UserError(_("Esta boleta no tiene un número de folio para consultar."))
+           if not self.fecha_emision:
+               raise UserError(_("La boleta debe tener una fecha de emisión."))
+   
+           _logger.info(f"Iniciando descarga de PDF para boleta folio {self.numero_boleta}")
+   
+           # --- Preparar y Ejecutar la Llamada a la API ---
+           config = self.get_simpleapi_config()
+           folio = self.numero_boleta
+           anio = self.fecha_emision.year
+           
+           url = f"{config['base_url']}/bhe/pdf/emitidas/{folio}/{anio}"
+           headers = {
+               'Authorization': config['api_key'],
+               'Accept': 'application/pdf',
+           }
+           payload = {
+               "RutUsuario": self.rut_usuario.replace('.', '').replace('-', ''),
+               "PasswordSII": self.password_sii,
+           }
+   
+           try:
+               _logger.info(f"Llamando a GET endpoint: {url}")
+               response = requests.get(url, json=payload, headers=headers, timeout=config['timeout'])
+               response.raise_for_status()
+   
+               # --- Procesar la Respuesta (el archivo PDF) ---
+               if response.content:
+                   pdf_en_base64 = base64.b64encode(response.content)
+                   self.write({
+                       'pdf_file': pdf_en_base64,
+                       'pdf_filename': f"BHE_{folio}.pdf",
+                       'state': 'downloaded',
+                   })
+                   self.message_post(body="El PDF de la boleta se ha descargado exitosamente desde el SII.")
+               else:
+                   self.message_post(body="La API no devolvió contenido para el PDF, pero la conexión fue exitosa.")
+   
+           except requests.exceptions.HTTPError as e:
+               error_body = e.response.text
+               _logger.error(f"Error HTTP al descargar PDF: {error_body}")
+               raise UserError(_(f"La API devolvió un error al intentar descargar el PDF: {error_body}"))
+           except Exception as e:
+               _logger.error(f"Error inesperado al descargar PDF: {e}")
+               raise UserError(_(f"Ocurrió un error inesperado: {e}"))
+   ```
+
+
+
+> [!NOTE]
+>
+> Los permisos en el archivo `ir.model.access.csv` se definen **por modelo**, no por cada botón o función que este tenga.
+>
+> Como nuestra nueva función (`action_get_sii_pdf`) y nuestro nuevo botón son solo una **extensión de ese mismo modelo**, ya están cubiertos por esta regla de seguridad existente. Los usuarios que ya pueden ver las boletas también podrán usar el nuevo botón.
+
+---
+
+## 2.5 - Registrar el Nuevo Archivo
+
+Abrimos el archivo **`models/__init__.py`**.
+
+Añadimos una nueva línea para importar el archivo. El contenido completo del archivo debería verse así:
+
+```python
+# -*- coding: utf-8 -*-
+
+from . import boleta_honorarios
+from . import res_config_settings
+from . import boleta_honorarios_pdf
+```
+
+---
+
+##### ¿Debemos configurar el manifest en la raiz del módulo?
+
+> [!NOTE]
+>
+> El archivo `__manifest__.py` en su sección `'data'` solo se usa para cargar archivos de **datos**, como los **XML** (vistas, menús, acciones) y los **CSV** (reglas de seguridad), por lo que no tenemos que tocar nada ahí, ya está cubierto.
+
+---
+
+### ¿Cómo Debe Ser el Orden en la Lista `'data'`?
+
+> [!TIP]
+>
+> El orden en esta lista es muy importante, y el que teniamos antes, sigue siendo correcto. La regla general es:
+>
+> 1. **Primero la Seguridad:** El archivo `security/ir.model.access.csv` siempre debe ir al principio. Odoo necesita saber quién tiene permiso para ver los modelos antes de intentar crear las vistas para ellos.
+>
+>    
+>
+> 2. **Después las Vistas:** Luego vienen todos los archivos de vistas (`.xml`). Si tuvieras un archivo de vista que hereda y modifica a otro, el archivo "padre" debe ir antes que el "hijo", sino arrojará error en la instalación del módulo.
+
+---
+
+## 2.6 - Probamos la Funcionalidad
+
+**Guardamos** los cambios en los 3 archivos.
+
+![image-20250924015400369](./image-20250924015400369.png)
+
+- **Subimos los cambios** a Odoo.sh con `git add .`, `commit` y `push`.
+
+- Espera que el build termine y **Actualiza** el módulo `simple_api_custom` en la lista de Apps.
+
+---
+
+### 3# Error
+
+```bash
+ParseError: while parsing /home/odoo/src/user/simple_api_custom/views/boleta_honorarios_views.xml:3
+Since 17.0, the "attrs" and "states" attributes are no longer used.
+```
+
+### Diagnóstico
+
+A partir de la versión 17.0 (y por lo tanto en la 18.0), Odoo ya no permite usar el atributo `attrs` en los botones para hacerlos visibles o invisibles de forma condicional. 
+
+El código que usamos es para versiones antiguas de Odoo.
+
+La línea que está causando que todo el build falle es esta en el archivo es la siguiente:
+
+`views/boleta_honorarios_views.xml`:
+
+```xml
+<button name="action_get_sii_pdf" ... attrs="{'invisible': [('state', 'not in', ['emitted', 'downloaded'])]}"/>
+```
+
+### Solución
+
+Para lograr el mismo objetivo (que el botón solo aparezca en ciertos estados), Odoo 18 utiliza una nueva sintaxis directamente en el botón, usando atributos especiales como `invisible`.
+
+1. Abrimos el archivo **`views/boleta_honorarios_views.xml`**.
+
+   
+
+2. Buscamos la línea del botón que añadimos.
+
+   
+
+3. Y reemplazamos por la nueva sintaxis.
+
+---
+
+#### Código Completo del `<header>`
+
+```xml
+<header>
+    <button name="action_emitir_boleta" string="Emitir Boleta" type="object" class="btn-primary"/>
+    
+    <button name="action_get_sii_pdf" 
+            string="Descargar PDF desde SII" 
+            type="object" 
+            class="btn-secondary" 
+            invisible="state not in ['emitted', 'downloaded']"/>
+    
+    <button name="action_anular_boleta" ... />
+    <button name="action_anular_boleta_path" ... />
+
+    <field name="state" widget="statusbar" .../>
+</header>
+```
+
+---
+
+## 2.7 - Segundo intento
+
+1. **Emitimos una boleta de prueba** (desde la misma interfaz de Odoo) para tener un registro en estado "Emitida".
+
+   
+
+2. Abrimos esa boleta, hacemos clic en el nuevo botón **"Descargar PDF desde SII"**.
+
+   ![image-20250923014254503](./image-20250923014254503.png)
+
+   
+
+3. **Verificamos el resultado:** El estado debería cambiar a "Descargada", un mensaje debería aparecer y el PDF debería estar adjunto al registro.
+
+   
+
+   
+
+   > [!CAUTION]
+   >
+   > El código que planteamos más arriba todavía no hacemos nada con el PDF, no se guarda en Odoo y, lo más importante, no le dice al navegador que inicie una descarga. Por lo que si al hacemos clic en descargar, no pasará absolutamente nada.
+
+   ```python
+   # REFERENCIA DEL CÓDIGO
+   
+   class BoletaHonorariosPdf(models.Model):
+       _inherit = 'boleta.honorarios'
+   
+       def action_get_sii_pdf(self):
+           #...
+           #(Falta la lógica para manejar el PDF y la descarga)
+           #...
+   ```
+
+   Debemos implementar eso correctamente..
+
+   
+
+   ```python
+   import base64
+   
+   import requests
+   
+   import logging
+   
+   import json # <-- AÑADIMOS
+   
+   from odoo import models, api, _
+   
+   from odoo.exceptions import UserError
+   
+   
+   
+   _logger = logging.getLogger(__name__)
+   
+   
+   
+   class BoletaHonorariosPdf(models.Model):
+   
+       _inherit = 'boleta.honorarios'
+   
+   
+   
+       def action_get_sii_pdf(self):
+   
+           self.ensure_one()
+   
+   
+   
+           # Validaciones Previas
+   
+           if self.state not in ('emitted', 'downloaded'):
+   
+               raise UserError(_("Solo se puede descargar el PDF de boletas ya emitidas."))
+   
+           if not self.numero_boleta:
+   
+               raise UserError(_("Esta boleta no tiene un número de folio para consultar."))
+   
+           if not self.fecha_emision:
+   
+               raise UserError(_("La boleta debe tener una fecha de emisión."))
+   
+   
+   
+           _logger.info(f"Iniciando descarga de PDF para boleta folio {self.numero_boleta}")
+   
+   
+   
+           config = self.get_simpleapi_config()
+   
+           folio = self.numero_boleta
+   
+           anio = self.fecha_emision.year
+   
+           
+   
+           url = f"{config['base_url']}/bhe/pdf/emitidas/{folio}/{anio}"
+   
+           
+   
+           # --- CAMBIO IMPORTANTE AQUÍ ---
+   
+           # Definimos las cabeceras (headers) indicando el Content-Type correcto
+   
+           headers = {
+   
+               'Authorization': config['api_key'],
+   
+               'Accept': 'application/pdf',
+   
+               'Content-Type': 'text/plain',
+   
+           }
+   
+           
+   
+           payload_dict = {
+   
+               "RutUsuario": self.rut_usuario.replace('.', '').replace('-', ''),
+   
+               "PasswordSII": self.password_sii,
+   
+           }
+   
+           # Convertimos el diccionario a un string de texto JSON
+   
+           payload_str = json.dumps(payload_dict)
+   
+           # -----------------------------
+   
+   
+   
+           try:
+   
+               _logger.info(f"Llamando a GET endpoint: {url}")
+   
+               # Enviamos el string como 'data' en lugar de 'json' para controlar el Content-Type
+   
+               response = requests.get(url, data=payload_str, headers=headers, timeout=config['timeout'])
+   
+               response.raise_for_status()
+   
+   
+   
+               if response.content:
+   
+                   pdf_en_base64 = base64.b64encode(response.content)
+   
+                   self.write({
+   
+                       'pdf_file': pdf_en_base64,
+   
+                       'pdf_filename': f"BHE_{folio}.pdf",
+   
+                       'state': 'downloaded',
+   
+                   })
+   
+                   self.message_post(body="El PDF de la boleta se ha descargado exitosamente desde el SII.")
+   
+               else:
+   
+                   self.message_post(body="La API no devolvió contenido para el PDF, pero la conexión fue exitosa.")
+   
+   
+   
+           except requests.exceptions.HTTPError as e:
+   
+               error_body = e.response.text
+   
+               _logger.error(f"Error HTTP al descargar PDF: {error_body}")
+   
+               raise UserError(_(f"La API devolvió un error al intentar descargar el PDF: {error_body}"))
+   
+           except Exception as e:
+   
+               _logger.error(f"Error inesperado al descargar PDF: {e}")
+   
+               raise UserError(_(f"Ocurrió un error inesperado: {e}"))
+   ```
+
+   ![image-20250923014434792](./image-20250923014434792.png)
+
+---
+
+#### #4 Error
+
+La respuesta está en un detalle técnico de cómo las aplicaciones web "hablan" entre sí.
+
+```bash
+La API devolvió un error al intentar descargar el PDF: {"type":"https://tools.ietf.org/html/rfc7231#section-6.5.13","title":"Unsupported Media Type","status":415,"traceId":"00-c7c5c8c6580ebd0d3a3e76652f3dde39-7f2925d71c55d7b6-00"}
+```
+
+---
+
+#### Diagnóstico
+
+```python
+# ...
+headers = {
+    'Content-Type': 'text/plain', # <-- El problema está aquí
+}
+payload_str = json.dumps(payload_dict)
+response = requests.get(url, data=payload_str, headers=headers, ...)
+# ...
+```
+
+**¿Por qué falló?**
+
+1. **`'Content-Type': 'text/plain'`**: Aquí le dijimos explícitamente al servidor: "Vamos a enviar la información en formato de **texto plano**".
+
+   
+
+2. **`data=payload_str`**: Le pasamos los datos como una cadena de texto.
+
+   
+
+3. **El Servidor Respondió:** El servidor de Simple API, al recibir la petición, vio la etiqueta "texto plano" , sin embargo no está programado para entender `text/plain` para este endpoint.
+
+   
+
+   Solo entiende `application/json`." Y por eso devolvió el error **`415 Unsupported Media Type`** (Tipo de Contenido No Soportado).
+
+---
+
+#### Solución
+
+```python
+# ...
+headers = {
+    'Accept': 'application/pdf', 
+}
+payload = { ... }
+response = requests.get(url, json=payload, headers=headers, ...)
+# ...
+```
+
+1. **No definimos `Content-Type`**: Dejamos que la librería `requests` lo hiciera por nosotros.
+
+   
+
+2. **`json=payload`**: Este es el parámetro clave. Cuando usamos `json=...` en `requests`, la librería hace dos cosas muy importantes automáticamente:
+
+   
+
+   - Convierte el diccionario de Python (`payload`) a una cadena de texto en formato JSON perfecta.
+
+     
+
+   - **Automáticamente añade la cabecera `Content-Type: application/json`** a la petición.
+
+
+
+`src/user/simple_api_custom/views/boleta_honorarios_views.xml` 
+
+
+
+```python
+import base64
+import requests
+import logging
+import json # <-- AÑADIMOS ESTE IMPORT!!
+from odoo import models, api, _
+from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
+
+class BoletaHonorariosPdf(models.Model):
+    _inherit = 'boleta.honorarios'
+
+    def action_get_sii_pdf(self):
+        self.ensure_one()
+
+        if self.state not in ('emitted', 'downloaded'):
+            raise UserError(_("Solo se puede descargar el PDF de boletas ya emitidas."))
+        if not self.numero_boleta:
+            raise UserError(_("Esta boleta no tiene un número de folio para consultar."))
+        if not self.fecha_emision:
+            raise UserError(_("La boleta debe tener una fecha de emisión."))
+
+        _logger.info(f"Iniciando descarga de PDF para boleta folio {self.numero_boleta}")
+
+        config = self.get_simpleapi_config()
+        folio = self.numero_boleta
+        anio = self.fecha_emision.year
+        
+        url = f"{config['base_url']}/bhe/pdf/emitidas/{folio}/{anio}"
+        
+        headers = {
+            'Authorization': config['api_key'],
+            'Accept': 'application/pdf',
+        }
+        
+        payload = {
+            "RutUsuario": self.rut_usuario.replace('.', '').replace('-', ''),
+            "PasswordSII": self.password_sii,
+        }
+
+        try:
+            _logger.info(f"Llamando a GET endpoint: {url}")
+            
+            response = requests.get(url, json=payload, headers=headers, timeout=config['timeout'])
+            response.raise_for_status()
+
+            if response.content:
+                pdf_en_base64 = base64.b64encode(response.content)
+                self.write({
+                    'pdf_file': pdf_en_base64,
+                    'pdf_filename': f"BHE_{folio}.pdf",
+                    'state': 'downloaded',
+                })
+                self.message_post(body="El PDF de la boleta se ha descargado exitosamente desde el SII.")
+                
+                return {
+                    'type': 'ir.actions.act_url',
+                    'url': f'/boleta_honorarios/download/{self.id}',
+                    'target': 'self',
+                }
+
+            else:
+                self.message_post(body="La API no devolvió contenido para el PDF, pero la conexión fue exitosa.")
+
+        except requests.exceptions.HTTPError as e:
+            error_body = e.response.text
+            _logger.error(f"Error HTTP al descargar PDF: {error_body}")
+            raise UserError(_(f"La API devolvió un error al intentar descargar el PDF: {error_body}"))
+        except Exception as e:
+            _logger.error(f"Error inesperado al descargar PDF: {e}")
+            raise UserError(_(f"Ocurrió un error inesperado: {e}"))
+        
+        return True
+```
+
+Este diccionario es una **acción de Odoo**. Al retornarlo, la función le da una instrucción directa a la interfaz de usuario: "El trabajo en el servidor terminó. Ahora, abre la URL `/boleta_honorarios/download/...` en el navegador".
+
+Esa URL activa el controlador que finalmente toma el archivo PDF y se lo entrega al navegador para que se descargue.
+
+```python
+        # ...
+        if response.content:
+            pdf_en_base64 = base64.b64encode(response.content)
+            self.write({
+                'pdf_file': pdf_en_base64,
+                'pdf_filename': f"BHE_{folio}.pdf",
+                'state': 'downloaded',
+            })
+            self.message_post(body="El PDF de la boleta se ha descargado exitosamente desde el SII.")
+            
+            # --- ESTA ES LA PARTE QUE FALTABA ---
+            # Le decimos a Odoo que inicie la descarga en el navegador.
+            return {
+                'type': 'ir.actions.act_url',
+                'url': f'/boleta_honorarios/download/{self.id}',
+                'target': 'self',
+            }
+            # ------------------------------------
+```
+
+---
+
+## 2.8 - Cambiando el ícono
+
+En la ruta `static/decription/` tenemos el ícono del logo del SII, pero solo se muestra en los menús de la aplicación
+
+El código actual crea dos menús:
+
+1. **`menu_boleta_honorarios_root`**: Este es el menú principal. 
+
+   
+
+2. **`menu_boleta_honorarios`**: Este es un submenú dentro del anterior. 
+
+Puede ser que como la acción no está en el menú principal, Odoo no lo considera una "aplicación" y no le muestra el ícono.
+
+Anteriormente se pensó que añadiendo la ruta en el `manifest`, sería la solución, pero no pasó nada, así como corregir la estructura de los menus :
+
+```xml
+<menuitem id="menu_boleta_honorarios_root"
+              name="Boletas Honorarios"
+              sequence="50"
+              action="action_boleta_honorarios"/>
+
+    <menuitem id="menu_boleta_honorarios_listado"
+              name="Listado de Boletas"
+              parent="menu_boleta_honorarios_root"
+              action="action_boleta_honorarios"
+              sequence="10"/>
+```
+
+pero lo que realmente funcionó fue aplicar `web_icon` dentro del root, por lo que parece ser un atributo especial de Odoo que permite especificar un ícono para un menú de aplicación directamente. Debe estar tomando prioridad sobre el `icon.png` 
+
+![image-20250924060633256](./image-20250924060633256.png)
+
+```xml
+    <menuitem id="menu_boleta_honorarios_root"
+              name="Boletas Honorarios"
+              sequence="50"
+              action="action_boleta_honorarios"
+              web_icon="simple_api_custom,static/description/icon.png"/>
+```
+
+---
+
+# 3.0 - Flujo Final
+
+## 3.1 - Conectarse a la rama de la instancia de desarrollo
+
+![image-20250924060919997](./image-20250924060919997.png)
+
+![image-20250924061027788](./image-20250924061027788.png)
+
+## 3.2 - Agregar la API Key
+
+![image-20250924061302464](./image-20250924061302464.png)
+
+### 3.2.1 También podemos crear el parámetro en el sistema
+
+![image-20250924061422981](./image-20250924061422981.png)
+
+![image-20250924061455007](./image-20250924061455007.png)
+
+
+
+![image-20250924061528529](./image-20250924061528529.png)
+
+## 3. - Emitir una boleta
+
+![image-20250924061110187](./image-20250924061110187.png)
+
+![captura_1758705589](./captura_1758705589.png)
+
+![captura_1758705653](./captura_1758705653.png)
+
+![captura_1758705750](./captura_1758705750.png)
+
