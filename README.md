@@ -1,3 +1,6 @@
+
+<img width="1076" height="408" alt="Frame 1000001100" src="https://github.com/user-attachments/assets/74012f65-3e75-4aab-8bba-d05583d68883" />
+
 # Fase 1: Preparación del entorno de desarrollo
 
 ---
