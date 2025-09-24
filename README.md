@@ -21,11 +21,11 @@
 - Odoo.sh crea la nueva rama en tu repositorio de GitHub por ti.
 - Inmediatamente, empieza a crear un nuevo "Build de Desarrollo" para esa rama.
 
-![image-20250916214045098](./image-20250916214045098.png)
+![image-20250916214045098](./assets/image-20250916214045098.png)
 
 - Esperamos que termine de hacer el build:
 
-![image-20250916220930013](./image-20250916220930013.png)
+![image-20250916220930013](./assets/image-20250916220930013.png)
 
 Ahora que el entorno está preparado, el siguiente paso del plan es abrir la **Shell** y comenzar a configurar los archivos de tu módulo dentro de esta rama.
 
@@ -33,11 +33,11 @@ Ahora que el entorno está preparado, el siguiente paso del plan es abrir la **S
 
 ### Creamos la estructura inicial en la shell 
 
-![image-20250916223546242](./image-20250916223546242.png)
+![image-20250916223546242](./assets/image-20250916223546242.png)
 
 En el editor de código copiamos el código del modulo proporcionado en `src/user`
 
-![image-20250916223442648](./image-20250916223442648.png) 
+![image-20250916223442648](./assets/image-20250916223442648.png) 
 
 ---
 
@@ -905,19 +905,19 @@ Activamos el modo `debug` en `settings`:
 
 https://remistocker-remigiostocker-integracion-simple-api-23778592.dev.odoo.com/odoo/settings?`debug=1`
 
-![image-20250916231526706](./image-20250916231526706.png)
+![image-20250916231526706](./assets/image-20250916231526706.png)
 
 
 
-![image-20250916231620387](./image-20250916231620387.png)
+![image-20250916231620387](./assets/image-20250916231620387.png)
 
-![image-20250916231656500](./image-20250916231656500.png)
+![image-20250916231656500](./assets/image-20250916231656500.png)
 
-![image-20250916231746166](./image-20250916231746166.png)
+![image-20250916231746166](./assets/image-20250916231746166.png)
 
 ### Dashboard con las Apps previas 
 
-![image-20250916232212455](./image-20250916232212455.png)
+![image-20250916232212455](./assets/image-20250916232212455.png)
 
 Ahora si podemos seguir, a grandes rasgos estos son los pasos a seguir:
 
@@ -929,17 +929,17 @@ git commit -m "feat: Agregar módulo base simple_api_custom"
 git push origin integracion_simple_api
 ```
 
-![image-20250917001657995](./image-20250917001657995.png)
+![image-20250917001657995](./assets/image-20250917001657995.png)
 
 Tuve que hacer un checkout porque antes me había arrojado error, no estaba sobre ninguna rama, por lo que no pude pushear nada, luego el commit de interés lo elegí con cherry-pick y despues pushear, lo siguiente fue autenticar con el usuario de github y el token agregado en github.
 
-![image-20250917001900246](./image-20250917001900246.png)
+![image-20250917001900246](./assets/image-20250917001900246.png)
 
 ### 1er Build
 
 ---
 
-![image-20250917010350330](./image-20250917010350330.png)
+![image-20250917010350330](./assets/image-20250917010350330.png)
 
 ---
 
@@ -985,7 +985,7 @@ Debemos cambiar el valor del atributo `name` por el nombre técnico del propio m
    <app data-string="Boletas Honorarios" string="Boletas Honorarios" name="simple_api_custom">
    ```
 
-![image-20250917011145785](./image-20250917011145785.png)
+![image-20250917011145785](./assets/image-20250917011145785.png)
 
 1. **Guarda** el cambio en el archivo.
 
@@ -1001,7 +1001,7 @@ Debemos cambiar el valor del atributo `name` por el nombre técnico del propio m
    git push https://github.com/RemiStocker/RemigioStocker.git integracion_simple_api
    ```
 
-![image-20250917011528755](./image-20250917011528755.png)
+![image-20250917011528755](./assets/image-20250917011528755.png)
 
 Después de hacer este `push`, Odoo.sh creará un nuevo build. Esta vez, la instalación debería ser exitosa y deberías poder ver el botón verde "CONNECT".
 
@@ -1009,9 +1009,9 @@ Después de hacer este `push`, Odoo.sh creará un nuevo build. Esta vez, la inst
 
 ### 2do Build
 
-![image-20250917012119392](./image-20250917012119392.png)
+![image-20250917012119392](./assets/image-20250917012119392.png)
 
-![image-20250917023034874](./image-20250917023034874.png)
+![image-20250917023034874](./assets/image-20250917023034874.png)
 
 ---
 
@@ -1062,7 +1062,7 @@ La solución es hacer que el campo `currency_id` sea explícitamente obligatorio
    )
    ```
 
-![image-20250917020717529](./image-20250917020717529.png)
+![image-20250917020717529](./assets/image-20250917020717529.png)
 
 1. **Guarda**mos el cambio en el archivo `models/boleta_honorarios.py`.
 
@@ -1078,21 +1078,21 @@ La solución es hacer que el campo `currency_id` sea explícitamente obligatorio
    git push https://github.com/RemiStocker/RemigioStocker.git integracion_simple_api
    ```
 
-![image-20250917021011606](./image-20250917021011606.png)
+![image-20250917021011606](./assets/image-20250917021011606.png)
 
 ---
 
 ### Resultado exitoso
 
-![image-20250917022907158](./image-20250917022907158.png)
+![image-20250917022907158](./assets/image-20250917022907158.png)
 
-![image-20250917022941752](./image-20250917022941752.png)
+![image-20250917022941752](./assets/image-20250917022941752.png)
 
 Hasta aquí ya tenemos la **Fase 1: Preparar el módulo** de la documentación
 
-![image-20250917023558974](./image-20250917023558974.png)
+![image-20250917023558974](./assets/image-20250917023558974.png)
 
-![image-20250917023609443](./image-20250917023609443.png)
+![image-20250917023609443](./assets/image-20250917023609443.png)
 
 ---
 
@@ -1104,13 +1104,13 @@ Hasta aquí ya tenemos la **Fase 1: Preparar el módulo** de la documentación
 
 ## Asignar una cuenta para conseguir un plan gratuito en Simple API 
 
-![image-20250917105055688](./image-20250917105055688.png)
+![image-20250917105055688](./assets/image-20250917105055688.png)
 
-![captura_1758118767](./captura_1758118767.png)
+![captura_1758118767](./assets/captura_1758118767.png)
 
 ## 2.1.- Ir a[ Simple API](https://documentacion.simpleapi.cl/#1aaa51cd-bc0a-46e9-99d3-7c8ca8215d03) y elegir 1 de los siguientes endpoints
 
-![captura_1758118857](./captura_1758118857.png)
+![captura_1758118857](./assets/captura_1758118857.png)
 
 ```json
 **Por contribuyente
@@ -1152,7 +1152,7 @@ POST /api/bhe/terceros/emitir
 
 ### Emitir Boleta de Honorarios por API
 
-![captura_1758119055](./captura_1758119055.png)
+![captura_1758119055](./assets/captura_1758119055.png)
 
 https://www.youtube.com/watch?v=VIHJIqgAyPM&t=43s
 
@@ -1168,9 +1168,9 @@ Ya que el proyecto estuvo inactivo unos días, ahora que lo retomamos aparece co
 
 Ir a `Builds` en el navbar superior y hacer clic en `Rebuild`.
 
-![image-20250922103145669](./image-20250922103145669.png)
+![image-20250922103145669](./assets/image-20250922103145669.png)
 
-![image-20250922103329887](./image-20250922103329887.png)
+![image-20250922103329887](./assets/image-20250922103329887.png)
 
 ---
 
@@ -1188,25 +1188,25 @@ Usaremos el endpoint que identificamos como el correcto para esto:
 
 Agregamos la colección abiendo con postman web o app desde la pagina de la documentación de simpleAPI, vamos a la carpeta inicial o principal de la colección y hacemos clic en "Authorization"
 
-![image-20250924023331176](./image-20250924023331176.png)
+![image-20250924023331176](./assets/image-20250924023331176.png)
 
 En Api Key dentro del campo Value, vemos que hay una variable que toma desde algún lado la Api y ese lugar se encuentra en la columna de la derecha, en los datos de prueba o enviroment, para ello debemos seleccionar primeramente el enviroment:
 
-![image-20250924022656898](./image-20250924022656898.png)
+![image-20250924022656898](./assets/image-20250924022656898.png)
 
 **Buscamos la Petición:** En la colección de Simple API en Postman, buscamos la petición que se llame "Obtener PDF Emitida".
 
-![image-20250924020401417](./image-20250924020401417.png)
+![image-20250924020401417](./assets/image-20250924020401417.png)
 
 **Configura la Petición:**
 
 - **Método:** Aseguramos de que el método HTTP sea **GET**.
 
-  ![image-20250924020442586](./image-20250924020442586.png)
+  ![image-20250924020442586](./assets/image-20250924020442586.png)
 
 - **URL:** Modifica la URL para incluir el `folio` y `año` de una boleta que ya hayamos emitido con éxito  (por ejemplo, el folio `6` ). La URL debería quedar así:
 
-- ![image-20250924020545004](./image-20250924020545004.png)
+- ![image-20250924020545004](./assets/image-20250924020545004.png)
 
   ```
   https://servicios.simpleapi.cl/api/bhe/pdf/emitidas/6/2025
@@ -1214,7 +1214,7 @@ En Api Key dentro del campo Value, vemos que hay una variable que toma desde alg
 
 - **Auth:** Aquí nos aseguramos que el mismo parámetro que encontramos al inicio, se encuentre. La petición debería heredar tu API Key de la configuración de la colección.
 
-![image-20250924023438048](./image-20250924023438048.png)
+![image-20250924023438048](./assets/image-20250924023438048.png)
 
 - **Body:** Ve a la pestaña **`Body`**, seleccionamos **`raw`** y **`JSON`**. Colocamos el `payload` con tus credenciales que probaremos, ya que este endpoint en particular las requiere:
 
@@ -1227,7 +1227,7 @@ En Api Key dentro del campo Value, vemos que hay una variable que toma desde alg
 
 **Enviamos la Petición:** Presionando**"Send"**.
 
-![captura_1758692243](./captura_1758692243.png)
+![captura_1758692243](./assets/captura_1758692243.png)
 
 Ya vemos que el Endpoint está funcionando (`200 OK`)con las credenciales del SII y la API Key de SimpleAPI. Debemos lograr añadir esto al módulo que desarrollaremos.
 
@@ -1404,7 +1404,7 @@ from . import boleta_honorarios_pdf
 
 **Guardamos** los cambios en los 3 archivos.
 
-![image-20250924015400369](./image-20250924015400369.png)
+![image-20250924015400369](./assets/image-20250924015400369.png)
 
 - **Subimos los cambios** a Odoo.sh con `git add .`, `commit` y `push`.
 
@@ -1478,7 +1478,7 @@ Para lograr el mismo objetivo (que el botón solo aparezca en ciertos estados), 
 
 2. Abrimos esa boleta, hacemos clic en el nuevo botón **"Descargar PDF desde SII"**.
 
-   ![image-20250923014254503](./image-20250923014254503.png)
+   ![image-20250923014254503](./assets/image-20250923014254503.png)
 
    
 
@@ -1652,7 +1652,7 @@ Para lograr el mismo objetivo (que el botón solo aparezca en ciertos estados), 
                raise UserError(_(f"Ocurrió un error inesperado: {e}"))
    ```
 
-   ![image-20250923014434792](./image-20250923014434792.png)
+   ![image-20250923014434792](./assets/image-20250923014434792.png)
 
 ---
 
@@ -1862,7 +1862,7 @@ Anteriormente se pensó que añadiendo la ruta en el `manifest`, sería la soluc
 
 pero lo que realmente funcionó fue aplicar `web_icon` dentro del root, por lo que parece ser un atributo especial de Odoo que permite especificar un ícono para un menú de aplicación directamente. Debe estar tomando prioridad sobre el `icon.png` 
 
-![image-20250924060633256](./image-20250924060633256.png)
+![image-20250924060633256](./assets/image-20250924060633256.png)
 
 ```xml
     <menuitem id="menu_boleta_honorarios_root"
@@ -1878,31 +1878,31 @@ pero lo que realmente funcionó fue aplicar `web_icon` dentro del root, por lo q
 
 ## 3.1 - Conectarse a la rama de la instancia de desarrollo
 
-![image-20250924060919997](./image-20250924060919997.png)
+![image-20250924060919997](./assets/image-20250924060919997.png)
 
-![image-20250924061027788](./image-20250924061027788.png)
+![image-20250924061027788](./assets/image-20250924061027788.png)
 
 ## 3.2 - Agregar la API Key
 
-![image-20250924061302464](./image-20250924061302464.png)
+![image-20250924061302464](./assets/image-20250924061302464.png)
 
 ### 3.2.1 También podemos crear el parámetro en el sistema
 
-![image-20250924061422981](./image-20250924061422981.png)
+![image-20250924061422981](./assets/image-20250924061422981.png)
 
-![image-20250924061455007](./image-20250924061455007.png)
+![image-20250924061455007](./assets/image-20250924061455007.png)
 
 
 
-![image-20250924061528529](./image-20250924061528529.png)
+![image-20250924061528529](./assets/image-20250924061528529.png)
 
 ## 3. - Emitir una boleta
 
-![image-20250924061110187](./image-20250924061110187.png)
+![image-20250924061110187](./assets/image-20250924061110187.png)
 
-![captura_1758705589](./captura_1758705589.png)
+![captura_1758705589](./assets/captura_1758705589.png)
 
-![captura_1758705653](./captura_1758705653.png)
+![captura_1758705653](./assets/captura_1758705653.png)
 
-![captura_1758705750](./captura_1758705750.png)
+![captura_1758705750](./assets/captura_1758705750.png)
 
